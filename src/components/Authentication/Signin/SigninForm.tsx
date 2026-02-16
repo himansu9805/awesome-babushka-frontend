@@ -1,10 +1,10 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import NeumorphButton from "@/components/commons/neumorph-button";
-import { environment } from "@/environments/environment";
-import axios from "axios";
 import Spinner from "@/components/animated/Spinner";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useServices } from "@/contexts/ServicesContext";
 
 type FormData = {
   username: string;
@@ -19,24 +19,22 @@ const SigninForm = () => {
   } = useForm<FormData>();
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { setAccessToken } = useContext(AuthContext);
+  const { setAccessToken } = useAuth();
+  const { authService } = useServices();
+  const navigate = useNavigate();
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    axios
-      .post(`${environment.services.auth}/auth/login`, data, {
-        withCredentials: true,
-      })
-      .then((response) => {
-        setFormError(null);
-        setAccessToken(response.data.access_token);
-      })
-      .catch((error) => {
-        setFormError(error.response?.data.error || "An error occurred");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    try {
+      const loginResponse = await authService.login(data);
+      setFormError(null);
+      setAccessToken(loginResponse.access_token);
+      navigate("/home", { replace: true });
+    } catch (error) {
+      setFormError(error.response.data.error || "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

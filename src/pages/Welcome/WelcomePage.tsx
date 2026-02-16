@@ -10,18 +10,16 @@ import SignupForm from "@/components/Authentication/Signup/SignupForm";
 import TextLooper from "@/components/animated/TextLooper";
 import Spinner from "@/components/animated/Spinner";
 import { GradientHeading } from "@/components/commons/gradient-heading";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { environment } from "@/environments/environment";
-import axios from "axios";
+import { useServices } from "@/contexts/ServicesContext";
 
 const WelcomePage = () => {
   const [isSignInDialogOpen, setIsSignInDialogOpen] = React.useState(false);
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = React.useState(false);
-  const { accessToken, setAccessToken } = React.useContext(AuthContext);
+  const { accessToken, setAccessToken } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = React.useState(true);
-
   const adjectives = [
     "Authentic",
     "Fearless",
@@ -37,6 +35,8 @@ const WelcomePage = () => {
     "Game-changing",
   ];
 
+  const { authService } = useServices();
+
   const handleSignIn = () => {
     setIsSignInDialogOpen(true);
     setIsSignUpDialogOpen(false);
@@ -51,20 +51,6 @@ const WelcomePage = () => {
     setIsSignUpDialogOpen(false);
   };
 
-  async function refreshAccessToken(): Promise<string> {
-    try {
-      const response = await axios.get(
-        `${environment.services.auth}/auth/refresh`,
-        {
-          withCredentials: true,
-        },
-      );
-      return response.data.access_token;
-    } catch {
-      return "";
-    }
-  }
-
   React.useEffect(() => {
     // This covers the following scenarios:
     // 1. No refresh token - When there is no refesh token stored in cookie.
@@ -72,25 +58,28 @@ const WelcomePage = () => {
     // 3. Valid refresh token - When the refresh token has not expired and is still valid. This scenraio is the positive case.
     const getAccessToken = async () => {
       setIsLoading(true);
-      // If we have an access token already then we can simply go to the protected route.
-      // `/home` is a protected path. So even if the access token is expired or invalid, the protected route will handle it accordingly.
-      if (accessToken) {
+      try {
+        // If we already have an access token, proceed to protected route
+        let token = accessToken;
+        if (!token) {
+          const refreshResponse = await authService.refresh();
+          token = refreshResponse.access_token;
+          setAccessToken(token);
+        }
+        // If we have a token (either from context or just refreshed), navigate
+        if (token) {
+          navigate("/home", { replace: true });
+        }
+      } catch {
+        // If the refresh token was invalid then we simply don't do anything. It is best to clearout the cookie so as to clear out the invalid
+        // refresh token. To do so /auth/logout API endpoint needs to be called.
+        await authService.logout();
+      } finally {
         setIsLoading(false);
-        navigate("/home", { replace: true });
       }
-      const token = await refreshAccessToken();
-      // If the refresh token was invalid then we simply don't do anything. It is best to clearout the cookie so as to clear out the invalid
-      // refresh token. To do so /auth/logout API endpoint needs to be called.
-      if (token === "") {
-        setIsLoading(false);
-        // logout();
-        return;
-      }
-      // We will reach to this line only when we have a valid refresh token and it has generated a valid access token.
-      setAccessToken(token);
     };
     getAccessToken();
-  }, [accessToken]);
+  }, []);
 
   return isLoading ? (
     <div className="flex items-center justify-center h-screen">
