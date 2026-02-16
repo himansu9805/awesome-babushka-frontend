@@ -12,16 +12,14 @@ import Spinner from "@/components/animated/Spinner";
 import { GradientHeading } from "@/components/commons/gradient-heading";
 import { AuthContext } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useCookies } from "react-cookie";
 import { environment } from "@/environments/environment";
 import axios from "axios";
 
 const WelcomePage = () => {
   const [isSignInDialogOpen, setIsSignInDialogOpen] = React.useState(false);
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = React.useState(false);
-  const { setUser } = React.useContext(AuthContext);
+  const { accessToken, setAccessToken } = React.useContext(AuthContext);
   const navigate = useNavigate();
-  const [cookies] = useCookies(['access_token', 'refresh_token']);
   const [isLoading, setIsLoading] = React.useState(true);
 
   const adjectives = [
@@ -36,134 +34,142 @@ const WelcomePage = () => {
     "Human",
     "Powerful",
     "Provocative",
-    "Game-changing"
+    "Game-changing",
   ];
 
   const handleSignIn = () => {
     setIsSignInDialogOpen(true);
     setIsSignUpDialogOpen(false);
-  }
+  };
 
   const handleSignUp = () => {
     setIsSignUpDialogOpen(true);
     setIsSignInDialogOpen(false);
-  }
+  };
   const handleCloseDialog = () => {
     setIsSignInDialogOpen(false);
     setIsSignUpDialogOpen(false);
-  }
+  };
 
-  async function validateToken(token: string): Promise<{ valid: boolean; user?: any }> {
-    try {
-      const response = await axios.get(
-        `${environment.services.auth}/auth/validate`,
-        { withCredentials: true, headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
-    } catch (error) {
-      return { valid: false };
-    }
-  }
-
-  async function refreshToken(token: string): Promise<{ access_token: string; refresh_token: string }> {
+  async function refreshAccessToken(): Promise<string> {
     try {
       const response = await axios.get(
         `${environment.services.auth}/auth/refresh`,
-        { withCredentials: true, headers: { Authorization: `Bearer ${token}` } }
+        {
+          withCredentials: true,
+        },
       );
-      return response.data;
-    } catch (error) {
-      console.error("Error refreshing token:", error);
-      return { access_token: "", refresh_token: "" };
+      return response.data.access_token;
+    } catch {
+      return "";
     }
   }
 
   React.useEffect(() => {
-    const validate = async () => {
+    // This covers the following scenarios:
+    // 1. No refresh token - When there is no refesh token stored in cookie.
+    // 2. Invalid refresh token - When the refresh token stored in cookie is either expired or invalid due to any reason.
+    // 3. Valid refresh token - When the refresh token has not expired and is still valid. This scenraio is the positive case.
+    const getAccessToken = async () => {
       setIsLoading(true);
-      if (cookies.access_token && cookies.refresh_token) {
-        const result = await validateToken(cookies.access_token);
-        if (result.valid && result.user) {
-          setUser(result.user);
-          navigate("/home", { replace: true });
-        } else {
-          const refreshResult = await refreshToken(cookies.refresh_token);
-          if (refreshResult.access_token && refreshResult.refresh_token) {
-            setUser(
-              JSON.parse(atob(refreshResult.access_token.split(".")[1]))
-            );
-            navigate("/home", { replace: true });
-          }
-          setIsLoading(false);
-          navigate("/", { replace: true });
-        }
-      } else {
+      // If we have an access token already then we can simply go to the protected route.
+      // `/home` is a protected path. So even if the access token is expired or invalid, the protected route will handle it accordingly.
+      if (accessToken) {
         setIsLoading(false);
-        navigate("/", { replace: true });
+        navigate("/home", { replace: true });
       }
+      const token = await refreshAccessToken();
+      // If the refresh token was invalid then we simply don't do anything. It is best to clearout the cookie so as to clear out the invalid
+      // refresh token. To do so /auth/logout API endpoint needs to be called.
+      if (token === "") {
+        setIsLoading(false);
+        // logout();
+        return;
+      }
+      // We will reach to this line only when we have a valid refresh token and it has generated a valid access token.
+      setAccessToken(token);
     };
-    validate();
-  }, [cookies.access_token, cookies.refresh_token]);
+    getAccessToken();
+  }, [accessToken]);
 
-  return (
-    isLoading ? (
-      <div className="flex items-center justify-center h-screen">
-        <Spinner size="large" />
+  return isLoading ? (
+    <div className="flex items-center justify-center h-screen">
+      <Spinner size="large" />
+    </div>
+  ) : (
+    <div className="flex flex-row items-center justify-center h-screen">
+      <div className="w-1/2">
+        <span className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white">
+          A platform designed to be <TextLooper texts={adjectives} />
+        </span>
+        <br />
+        <br />
+        <GradientHeading size={"sm"} weight={"semi"}>
+          Because even small thoughts can spark big conversations—sign in and be
+          part of something real.
+        </GradientHeading>
       </div>
-    ) : (
-      <div className="flex flex-row items-center justify-center h-screen">
-        <div className="w-1/2">
-          <span className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white">
-            A platform designed to be <TextLooper texts={adjectives} />
-          </span>
-          <br />
-          <br />
-          <GradientHeading size={"sm"} weight={"semi"}>
-            Because even small thoughts can spark big conversations—sign in and be part of something real.
-          </GradientHeading>
-        </div>
-        <div className="flex flex-col items-center justify-center h-full w-1/2">
-          <div className="w-2/3">
-            <div className="text-4xl xl:text-5xl font-bold text-white mb-4 text-start w-full">
-              Connect. Share. Inspire.
+      <div className="flex flex-col items-center justify-center h-full w-1/2">
+        <div className="w-2/3">
+          <div className="text-4xl xl:text-5xl font-bold text-white mb-4 text-start w-full">
+            Connect. Share. Inspire.
+          </div>
+          <div className="text-white font-bold text-2xl mb-5 text-start w-full">
+            Sign in to your account
+          </div>
+          <NeumorphButton fullWidth intent={"white"} className="mb-4">
+            <div className="flex items-center justify-center">
+              <img
+                src={googleLogo}
+                alt="Google Logo"
+                className="w-5 h-5 mr-2"
+              />
+              <span>Sign in with Google</span>
             </div>
-            <div className="text-white font-bold text-2xl mb-5 text-start w-full">
-              Sign in to your account
+          </NeumorphButton>
+          <NeumorphButton fullWidth intent={"white"} className="mb-4">
+            <div className="flex items-center justify-center">
+              <img src={appleLogo} alt="Apple Logo" className="w-5 h-5 mr-2" />
+              <span>Sign in with Apple</span>
             </div>
-            <NeumorphButton fullWidth intent={'white'} className="mb-4">
-              <div className="flex items-center justify-center">
-                <img src={googleLogo} alt="Google Logo" className="w-5 h-5 mr-2" />
-                <span>Sign in with Google</span>
-              </div>
+          </NeumorphButton>
+          <NeumorphButton fullWidth intent={"white"} onClick={handleSignIn}>
+            Sign in
+          </NeumorphButton>
+          <DialogBox isOpen={isSignInDialogOpen} onClose={handleCloseDialog}>
+            <SigninForm />
+          </DialogBox>
+          <div className="flex flex-col items-center justify-center mt-4 w-full">
+            <Divider text="OR" />
+            <div className="text-white text-sm mb-4 text-start w-full">
+              Don't have an account?
+            </div>
+            <NeumorphButton fullWidth intent={"primary"} onClick={handleSignUp}>
+              Sign up
             </NeumorphButton>
-            <NeumorphButton fullWidth intent={'white'} className="mb-4">
-              <div className="flex items-center justify-center">
-                <img src={appleLogo} alt="Apple Logo" className="w-5 h-5 mr-2" />
-                <span>Sign in with Apple</span>
-              </div>
-            </NeumorphButton>
-            <NeumorphButton fullWidth intent={'white'} onClick={handleSignIn}>Sign in</NeumorphButton>
-            <DialogBox isOpen={isSignInDialogOpen} onClose={handleCloseDialog}>
-              <SigninForm />
+            <DialogBox isOpen={isSignUpDialogOpen} onClose={handleCloseDialog}>
+              <SignupForm />
             </DialogBox>
-            <div className="flex flex-col items-center justify-center mt-4 w-full">
-              <Divider text="OR" />
-              <div className="text-white text-sm mb-4 text-start w-full">
-                Don't have an account?
-              </div>
-              <NeumorphButton fullWidth intent={'primary'} onClick={handleSignUp}>Sign up</NeumorphButton>
-              <DialogBox isOpen={isSignUpDialogOpen} onClose={handleCloseDialog}>
-                <SignupForm />
-              </DialogBox>
-            </div>
-            <div className="text-white text-xs mt-4 text-start w-full">
-              By continuing, you agree to our <a href="#" className="text-blue-400 underline">Terms of Service</a>, <a href="#" className="text-blue-400 underline">Privacy Policy</a>, and <a href="#" className="text-blue-400 underline">Cookie Use</a>. Your privacy is our priority.
-            </div>
+          </div>
+          <div className="text-white text-xs mt-4 text-start w-full">
+            By continuing, you agree to our{" "}
+            <a href="#" className="text-blue-400 underline">
+              Terms of Service
+            </a>
+            ,{" "}
+            <a href="#" className="text-blue-400 underline">
+              Privacy Policy
+            </a>
+            , and{" "}
+            <a href="#" className="text-blue-400 underline">
+              Cookie Use
+            </a>
+            . Your privacy is our priority.
           </div>
         </div>
       </div>
-    )
+    </div>
   );
-}
+};
 
 export default WelcomePage;
