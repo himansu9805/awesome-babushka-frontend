@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import NeumorphButton from '../components/commons/neumorph-button';
 

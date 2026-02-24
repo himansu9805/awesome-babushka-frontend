@@ -1,5 +1,10 @@
 import { ApiClient } from "@/services/ApiClient";
-import { LoginRequest, LoginResponse, UserInfo } from "@/services/auth";
+import {
+  LoginRequest,
+  LoginResponse,
+  UserInfo,
+  UserUpdateRequest,
+} from "@/services/auth";
 
 export class AuthService {
   constructor(private api: ApiClient) {}
@@ -21,8 +26,13 @@ export class AuthService {
     await this.api.get("/auth/logout");
   }
 
-  async me(): Promise<UserInfo> {
+  async getMe(): Promise<UserInfo> {
     const response = await this.api.get<UserInfo>("/user/me");
+    return response.data;
+  }
+
+  async updateMe(updateRequest: Partial<UserUpdateRequest>): Promise<UserInfo> {
+    const response = await this.api.patch<UserInfo>("/user/me", updateRequest);
     return response.data;
   }
 }

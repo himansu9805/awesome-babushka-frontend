@@ -8,8 +8,18 @@ export interface LoginResponse {
 }
 
 export interface UserInfo {
+  firstname: string;
+  lastname: string;
+  bio: string;
   username: string;
   email: string;
   verified: boolean;
   active: boolean;
+}
+
+export interface UserUpdateRequest {
+  firstname: string;
+  lastname: string;
+  bio: string;
+  username: string;
 }

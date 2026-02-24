@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import NeumorphButton from "@/components/commons/neumorph-button";
 import Spinner from "@/components/animated/Spinner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +32,13 @@ const SigninForm = () => {
       setAccessToken(loginResponse.access_token);
       navigate("/home", { replace: true });
     } catch (error) {
-      setFormError(error.response.data.error || "An error occurred");
+      if (axios.isAxiosError(error)) {
+        setFormError(error.response?.data?.error ?? "An error occurred");
+      } else if (error instanceof Error) {
+        setFormError(error.message);
+      } else {
+        setFormError("An error occurred");
+      }
     } finally {
       setIsLoading(false);
     }

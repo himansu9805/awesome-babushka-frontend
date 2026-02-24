@@ -37,7 +37,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const fetchUserInfo = async () => {
       try {
         if (accessToken && !user) {
-          const userInfo = await authService.me();
+          const userInfo = await authService.getMe();
           setUser(userInfo);
         }
       } catch {

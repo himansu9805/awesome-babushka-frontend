@@ -1,4 +1,3 @@
-import React from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
@@ -10,24 +9,26 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import NeumorphEyebrow from "../../commons/neumorph-eyebrow";
 import NeumorphButton from "@/components/commons/neumorph-button";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { environment } from "@/environments/environment";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useServices } from "@/contexts/ServicesContext";
 
 function NavItem({
   icon,
   title,
+  onClick = () => {},
   active = false,
 }: {
   icon: IconDefinition;
   title: string;
   active?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
       className={`flex items-center gap-4 px-4 py-2 w-full rounded-xl cursor-pointer transition-colors mb-2
       ${active ? "bg-black text-white" : " hover:bg-gray-100"}`}
+      onClick={onClick}
     >
       <FontAwesomeIcon icon={icon} className="text-xl" />
       <span className="font-bold text-lg">{title}</span>
@@ -37,22 +38,22 @@ function NavItem({
 
 export default function LeftSidenav() {
   const navigate = useNavigate();
-  const { setAccessToken } = React.useContext(AuthContext);
+  const location = useLocation();
+  const { setAccessToken } = useAuth();
+  const { authService } = useServices();
 
-  const logout = () => {
-    axios
-      .get(`${environment.services.auth}/auth/logout`, {
-        withCredentials: true,
-      })
-      .then((response) => {
-        if (response.status === 200) {
-          setAccessToken(null);
-          navigate("/", { replace: true });
-        }
-      })
-      .catch((error) => {
-        console.error("Error logging out:", error);
-      });
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      setAccessToken(null);
+      navigate("/", { replace: true });
+    } catch {
+      // Do nothing, for now
+    }
+  };
+
+  const handleNavigation = (route: string) => {
+    navigate(`/${route}`);
   };
 
   return (
@@ -73,8 +74,18 @@ export default function LeftSidenav() {
             </NeumorphEyebrow>
           </h1>
         </div>
-        <NavItem icon={faHome} active title="Home" />
-        <NavItem icon={faUser} title="Profile" />
+        <NavItem
+          icon={faHome}
+          active={location.pathname == "/home"}
+          title="Home"
+          onClick={() => handleNavigation("home")}
+        />
+        <NavItem
+          icon={faUser}
+          active={location.pathname == "/profile"}
+          title="Profile"
+          onClick={() => handleNavigation("profile")}
+        />
         <NavItem icon={faEnvelope} title="Messages" />
         <NavItem icon={faBell} title="Notifications" />
       </div>
@@ -83,7 +94,7 @@ export default function LeftSidenav() {
           fullWidth
           intent={"white"}
           className="mb-4"
-          onClick={logout}
+          onClick={handleLogout}
         >
           <div className="flex items-center justify-center">
             <FontAwesomeIcon icon={faRightFromBracket} className="text-lg" />

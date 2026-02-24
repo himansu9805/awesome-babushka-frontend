@@ -1,8 +1,13 @@
 import { JSX, useEffect, useState } from "react";
-import DynamicIsland, { DynamicContainer, DynamicDescription, DynamicIslandProvider, DynamicTitle, SizePresets, useDynamicIslandSize } from "../../commons/dynamic-blob";
+import DynamicIsland, {
+  DynamicContainer,
+  DynamicDescription,
+  DynamicIslandProvider,
+  SizePresets,
+  useDynamicIslandSize,
+} from "../../commons/dynamic-blob";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faClock, faNewspaper } from "@fortawesome/free-regular-svg-icons";
-import { GradientHeading } from "@/components/commons/gradient-heading";
+import { faNewspaper } from "@fortawesome/free-regular-svg-icons";
 import { faBullseye } from "@fortawesome/free-solid-svg-icons";
 
 const LargeView = () => (
@@ -17,20 +22,6 @@ const TallView = () => (
   </div>
 );
 
-const TimeView = () => (
-  <DynamicContainer className="flex items-center justify-center h-full w-full">
-    <div className="w-full flex items-center">
-      <DynamicDescription className="ml-4 my-auto text-lg text-white ">
-        <FontAwesomeIcon icon={faClock} className="text-white" />
-      </DynamicDescription>
-
-      <DynamicDescription className="text-white mx-4 text-sm text-left">
-        {new Date().toLocaleTimeString()}
-      </DynamicDescription>
-    </div>
-  </DynamicContainer>
-);
-
 const NewsView = () => (
   <DynamicContainer className="flex items-center justify-center h-full w-full">
     <div className="w-full flex items-center">
@@ -43,7 +34,7 @@ const NewsView = () => (
       </DynamicDescription>
     </div>
   </DynamicContainer>
-)
+);
 
 const InfoView = () => (
   <DynamicContainer className="flex items-center justify-center h-full w-full">
@@ -61,12 +52,12 @@ const InfoView = () => (
       </div>
     </div>
   </DynamicContainer>
-)
+);
 
 
 const UserFocus = () => {
   const sizeOrder: SizePresets[] = ["compactLong", "large", "tall"];
-  const { state: blobState, setSize } = useDynamicIslandSize();
+  const { setSize } = useDynamicIslandSize();
   const [content, setContent] = useState<JSX.Element>(<InfoView />);
   const [currentIndex, setCurrentIndex] = useState(0);
   const renderers: Partial<Record<SizePresets, () => JSX.Element>> = {
@@ -78,12 +69,10 @@ const UserFocus = () => {
     const nextIndex = (currentIndex + 1) % sizeOrder.length;
     setCurrentIndex(nextIndex);
     setSize(sizeOrder[nextIndex]);
-    setContent(
-      renderers[sizeOrder[nextIndex]]!()
-    )
+    setContent(renderers[sizeOrder[nextIndex]]!());
   };
   useEffect(() => {
-    setSize('compactLong');
+    setSize("compactLong");
     // setContent(NewsView());
   }, []);
 
@@ -101,6 +90,6 @@ export default function RightSideNav() {
       <DynamicIslandProvider initialSize="compactLong">
         <UserFocus />
       </DynamicIslandProvider>
-    </div >
+    </div>
   );
 }

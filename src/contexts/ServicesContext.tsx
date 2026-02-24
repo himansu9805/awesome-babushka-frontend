@@ -3,9 +3,11 @@ import { createContext, useContext, useMemo } from "react";
 import { ApiClient } from "@/services/ApiClient";
 import { AuthService } from "@/services/AuthService";
 import { useAuth } from "@/contexts/AuthContext";
+import { ContentService } from "@/services/ContentService";
 
 interface Services {
   authService: AuthService;
+  contentService: ContentService;
 }
 
 const ServicesContext = createContext<Services | undefined>(undefined);
@@ -18,13 +20,18 @@ export const ServicesProvider = ({
   const { accessToken } = useAuth();
 
   const services = useMemo(() => {
-    const apiClient = new ApiClient(
+    const authApiClient = new ApiClient(
       "http://localhost:8000/api/v1",
+      () => accessToken,
+    );
+    const contentApiClient = new ApiClient(
+      "http://localhost:8001/api/v1",
       () => accessToken,
     );
 
     return {
-      authService: new AuthService(apiClient),
+      authService: new AuthService(authApiClient),
+      contentService: new ContentService(contentApiClient),
     };
   }, [accessToken]);
 

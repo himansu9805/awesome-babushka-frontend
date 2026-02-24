@@ -1,12 +1,13 @@
-import type React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { motion, type HTMLMotionProps } from "framer-motion"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faSpinner } from "@fortawesome/free-solid-svg-icons"
+import type React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { motion, type HTMLMotionProps } from "framer-motion";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
 
 const buttonVariants = cva(
   // Base styles
-  "justify-center px-4 text-sm font-medium items-center transition-[box-shadow,background-color] disabled:cursor-not-allowed disabled:opacity-50 flex active:transition-none",
+  "justify-center px-4 text-sm font-medium items-center cursor-pointer transition-[box-shadow,background-color] disabled:cursor-not-allowed disabled:opacity-50 flex active:transition-none",
   {
     variants: {
       intent: {
@@ -79,7 +80,7 @@ const buttonVariants = cva(
           "border-[#E0E0E0]",
           "active:bg-[#F8F8F8]",
           "active:[box-shadow:inset_0px_-1.5px_0px_0px_#D8D8D8,_0px_0.5px_2px_0px_rgba(255,_255,_255,_15%)]",
-        ]
+        ],
       },
       size: {
         small: ["text-xs", "py-1", "px-2", "h-9", "rounded-[8px]"],
@@ -101,14 +102,14 @@ const buttonVariants = cva(
       intent: "default",
       size: "medium",
     },
-  }
-)
+  },
+);
 
 export interface NeumorphButtonProps
-  extends HTMLMotionProps<"button">,
-  VariantProps<typeof buttonVariants> {
-  children: React.ReactNode
-  loading?: boolean
+  extends HTMLMotionProps<"button">, VariantProps<typeof buttonVariants> {
+  children: React.ReactNode;
+  loading?: boolean;
+  icon?: IconProp;
 }
 
 const NeumorphButton: React.FC<NeumorphButtonProps> = ({
@@ -119,6 +120,7 @@ const NeumorphButton: React.FC<NeumorphButtonProps> = ({
   children,
   loading = false,
   disabled,
+  icon,
   ...props
 }) => {
   return (
@@ -130,16 +132,22 @@ const NeumorphButton: React.FC<NeumorphButtonProps> = ({
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
       {...props}
     >
-      {loading ? <FontAwesomeIcon icon={faSpinner} className="mr-2 h-4 w-4 animate-spin" /> : null}
+      {loading ? (
+        <FontAwesomeIcon
+          icon={faSpinner}
+          className="mr-2 h-4 w-4 animate-spin"
+        />
+      ) : null}
       <motion.span
         initial={{ opacity: 1 }}
         animate={{ opacity: loading ? 0.7 : 1 }}
         transition={{ duration: 0.2 }}
       >
+        {icon && <FontAwesomeIcon icon={icon} className="mr-2 h-4 w-4" />}
         {children}
       </motion.span>
     </motion.button>
-  )
-}
+  );
+};
 
-export default NeumorphButton
+export default NeumorphButton;
